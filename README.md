@@ -1,125 +1,94 @@
-# IDE Unillanos 1.0 - Editor de Texto con Micro-kernel
+# IDE Unillanos 1.0
 
-Aplicación de escritorio en Java para procesar archivos de texto usando una arquitectura **micro-kernel** con plugins desacoplados bajo enfoque **IoC/DI** y carga dinámica de componentes desde archivos `.jar`.
+Aplicación de escritorio en Java (Swing) para cargar texto, ejecutar plugins y mostrar resultados bajo arquitectura micro-kernel.
 
-## Características
+## Funcionalidades actuales
 
-- Carga y edición de archivos `.txt`.
-- Carga de componentes externos en formato `.jar`.
-- Ejecución de un componente cargado por selección.
-- Visualización de resultados en el panel **Archivo procesado**.
-- Visualización de mensajes y errores en el panel inferior.
-- Resaltado de palabras reservadas de **Java**, **C++** y **SQL**.
+- Abrir y guardar archivos `.txt`.
+- Editar texto directamente en el panel principal.
+- Cargar plugins desde archivos `.jar` en tiempo de ejecución.
+- Ejecutar el plugin seleccionado en **Componentes cargados**.
+- Mostrar salida en **Archivo procesado** y mensajes en **Salida de mensajes**.
+- Resaltar tokens en el editor cuando se ejecuta `ResaltarTexto`.
 
 ## Arquitectura
 
-El sistema está organizado alrededor del núcleo `IdeUnillanos`, que registra servicios y carga plugins desde JAR:
-
-- **Core (micro-kernel):** orquesta carga y ejecución de plugins.
-- **Contratos:** interfaz común `Plugin`.
-- **Servicios:** tokenización, normalización, stopwords, búsqueda por fila/columna, diccionario de palabras reservadas.
-- **Plugins:** `ResaltarTexto`, `ListarPalabras`, `BuscarTexto`, `ContadorPalabras`.
-- **UI (IGU):**
-  - Mitad izquierda: carga de componentes, lista de componentes cargados y ejecución.
-  - Mitad derecha: carga de archivo, editor de texto y resultados.
-  - Pie de página: mensajes y errores.
-
-## Estructura del proyecto
-
-```text
-src/main/java/app
-├── Main.java
-├── contracts
-├── core
-├── dto
-├── entities
-├── persistence
-├── plugins
-│   ├── highlight
-│   ├── search
-│   ├── wordcount
-│   └── wordlist
-├── services
-└── ui
-```
+- **Núcleo:** `IdeUnillanos` (carga plugins, registra servicios y ejecuta plugins).
+- **Contrato:** `Plugin` y `PluginContext`.
+- **Servicios:** tokenización, normalización, stopwords, localización fila/columna y diccionario de keywords.
+- **Plugins incluidos:** `ResaltarTexto`, `BuscarTexto`, `ContadorPalabras`, `ListarPalabras`.
+- **Interfaz:** `MainWindow` + paneles de resultados y mensajes.
 
 ## Requisitos
 
-- Java 17 o superior
-- Maven 3.8+ (recomendado)
-- Sistema operativo con soporte para Swing
+- Java 17+
+- Maven 3.8+
 
 ## Compilar y empaquetar
-
-Desde la raíz del proyecto:
 
 ```bash
 mvn clean package
 ```
 
-Esto genera:
+Artefactos generados en `target/`:
 
-- `target/ide-unillanos-1.0.0.jar` (aplicación principal)
-- `target/ide-unillanos-1.0.0-plugin-highlight.jar`
-- `target/ide-unillanos-1.0.0-plugin-search.jar`
-- `target/ide-unillanos-1.0.0-plugin-wordcount.jar`
-- `target/ide-unillanos-1.0.0-plugin-wordlist.jar`
+- `ide-unillanos-1.0.0.jar` (aplicación)
+- `ide-unillanos-1.0.0-plugin-highlight.jar`
+- `ide-unillanos-1.0.0-plugin-search.jar`
+- `ide-unillanos-1.0.0-plugin-wordcount.jar`
+- `ide-unillanos-1.0.0-plugin-wordlist.jar`
 
 ## Ejecutar
+
+Con JAR principal:
 
 ```bash
 java -jar target/ide-unillanos-1.0.0.jar
 ```
 
-Alternativa con clases compiladas:
+Con clases compiladas:
 
 ```bash
 mvn compile
 java -cp target/classes app.Main
 ```
 
-## Uso de la aplicación
+## Uso rápido
 
 1. Inicia la aplicación.
-2. En la parte izquierda, presiona **Cargar componente**.
-3. Selecciona un archivo `.jar` de componente (por ejemplo, `target/ide-unillanos-1.0.0-plugin-search.jar`).
-4. Repite el paso anterior para cargar más componentes.
-5. En la lista **Componentes cargados**, selecciona uno.
-6. En la parte derecha, presiona **Cargar archivo** para abrir un `.txt`, o escribe texto manualmente en el editor.
-7. Presiona **Ejecutar componente**.
-8. Revisa:
-   - resultados en **Archivo procesado**,
-   - mensajes y errores en **Salida de mensajes**.
+2. Carga uno o varios plugins con **Cargar componente** (archivos `.jar`).
+3. Selecciona un plugin en **Componentes cargados**.
+4. Abre un `.txt` con **Cargar archivo** o escribe en el editor.
+5. Ejecuta con **Ejecutar componente**.
+6. Revisa resultados en **Archivo procesado** y mensajes en **Salida de mensajes**.
 
-## Componentes disponibles
+## Comportamiento de plugins
 
-### 1) ResaltarTexto
-- Detecta palabras reservadas de Java, C++ y SQL.
-- Resalta coincidencias en el editor.
+### ResaltarTexto
+- Busca tokens que coincidan con palabras reservadas de Java, C++ y SQL.
+- Resalta en el editor por color según lenguaje.
+- Reporta conteo por lenguaje en mensajes.
 
-### 2) ListarPalabras
-- Lista palabras encontradas en el texto sin duplicados.
-- Excluye conectores (stopwords) y caracteres especiales.
+### BuscarTexto
+- Solicita una palabra mediante diálogo.
+- Si no se ingresa término, retorna error.
+- Busca coincidencias de palabra completa (case-insensitive) y reporta fila/columna (base 1).
 
-### 3) BuscarTexto
-- Solicita la palabra a buscar.
-- Retorna coincidencias indicando **fila** y **columna**.
+### ContadorPalabras
+- Tokeniza y normaliza a minúsculas.
+- Cuenta frecuencia por palabra.
+- Devuelve resultados ordenados de mayor a menor frecuencia.
 
-### 4) ContadorPalabras
-- Cuenta frecuencia de aparición por palabra.
-- Muestra el conteo ordenado por mayor frecuencia.
+### ListarPalabras
+- Tokeniza y normaliza a minúsculas.
+- Excluye stopwords.
+- Devuelve palabras únicas ordenadas alfabéticamente.
 
 ## Manejo de errores
 
-- Si un plugin falla, el kernel captura la excepción y la reporta como mensaje de error.
-- Si no hay componentes cargados, se muestra advertencia en el panel de mensajes.
-- Si en `BuscarTexto` no se ingresa término, se reporta error del componente.
-
-## Notas técnicas
-
-- El contrato común de plugins facilita agregar nuevos componentes sin cambiar la UI.
-- La búsqueda usa índices de fila/columna base 1.
-- El proyecto está orientado a uso académico y demostración de patrón micro-kernel.
+- Si no hay plugins cargados o no hay selección, la UI muestra advertencia.
+- Si un plugin falla durante ejecución, el kernel retorna mensaje de error.
+- Si un JAR no contiene clases plugin válidas, se informa en el panel de mensajes.
 
 ## Autoría
 

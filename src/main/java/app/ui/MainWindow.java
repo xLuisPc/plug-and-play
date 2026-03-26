@@ -35,6 +35,7 @@ import java.awt.Insets;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -205,33 +206,42 @@ public class MainWindow extends JFrame {
     private void loadPluginJar() {
         JFileChooser chooser = new JFileChooser();
         chooser.setFileFilter(new FileNameExtensionFilter("Archivos JAR", "jar"));
+        chooser.setMultiSelectionEnabled(true);
         int result = chooser.showOpenDialog(this);
         if (result != JFileChooser.APPROVE_OPTION) {
             return;
         }
 
-        File jarFile = chooser.getSelectedFile();
-        List<String> foundPlugins = kernel.loadPluginsFromJar(jarFile.toPath());
-        if (foundPlugins.isEmpty()) {
-            messagesPanel.addMessages(List.of(
-                    new PluginMessage(PluginMessage.Type.WARN, "UI",
-                            "No se encontraron componentes validos en: " + jarFile.getName())
-            ));
-            return;
-        }
-
-        int addedCount = 0;
-        for (String pluginName : foundPlugins) {
-            if (loadedPlugins.add(pluginName)) {
-                loadedPluginsModel.addElement(pluginName);
-                addedCount++;
+        File[] selectedFiles = chooser.getSelectedFiles();
+        if (selectedFiles == null || selectedFiles.length == 0) {
+            File singleSelection = chooser.getSelectedFile();
+            if (singleSelection == null) {
+                return;
             }
+            selectedFiles = new File[]{singleSelection};
         }
 
-        messagesPanel.addMessages(List.of(
-                new PluginMessage(PluginMessage.Type.INFO, "UI",
-                        "Componentes cargados desde " + jarFile.getName() + ": " + addedCount)
-        ));
+        List<PluginMessage> batchMessages = new ArrayList<>();
+        for (File jarFile : selectedFiles) {
+            List<String> foundPlugins = kernel.loadPluginsFromJar(jarFile.toPath());
+            if (foundPlugins.isEmpty()) {
+                batchMessages.add(new PluginMessage(PluginMessage.Type.WARN, "UI",
+                        "No se encontraron componentes validos en: " + jarFile.getName()));
+                continue;
+            }
+
+            int addedCount = 0;
+            for (String pluginName : foundPlugins) {
+                if (loadedPlugins.add(pluginName)) {
+                    loadedPluginsModel.addElement(pluginName);
+                    addedCount++;
+                }
+            }
+            batchMessages.add(new PluginMessage(PluginMessage.Type.INFO, "UI",
+                    "Componentes cargados desde " + jarFile.getName() + ": " + addedCount));
+        }
+
+        messagesPanel.addMessages(batchMessages);
         if (!loadedPluginsModel.isEmpty() && loadedList.getSelectedIndex() == -1) {
             loadedList.setSelectedIndex(0);
         }
